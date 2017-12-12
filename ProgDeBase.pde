@@ -80,10 +80,12 @@ void blacknwhite() {
 }
 
 void blur(){
+  loadPixels();
   int[][] tab = new int[img.width][img.height];
   for (int i = 0; i < tab.length; i++)
     for (int j = 0; j < tab[i].length; j++)
-      println(i+" x "+j);
+      
+  updatePixels();    
 }
 
 void keyPressed()
