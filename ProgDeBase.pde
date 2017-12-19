@@ -2,9 +2,9 @@ PFont police;
 PImage img = null;
 int nbPixels;
 boolean blacknwhite = false;
-int[][] blurmatrice = { {1,1,1},
-                        {1,1,1},
-                        {1,1,1}};
+float[][] blurmatrice = { {1/9f,1/9f,1/9f},
+                        {1/9f,1/9f,1/9f},
+                        {1/9f,1/9f,1/9f}};
 
 void setup(){
   police=loadFont("LiberationMono-24.vlw");
@@ -15,20 +15,29 @@ void setup(){
   image(img,0,0);
 }
 
-void draw()
-{
-menu();
+void draw() {
+  menu();
+ /* loadPixels();
+  for (int x = 0; x < img.width; x++)
+    for (int y = 0; y < img.height; y++) {
+      color hsv = rgbtohsv(img.pixels[y * img.width + x]);
+      color hs = (hsv >> 8) << 8;
+      hsv = (int) ((mouseX / 800d) * (hsv - hs) + hs);
+      pixels[y * img.width + x] = hsvtorgb(hsv);
+    }
+  updatePixels(); */
 }
 
 
 void menu() {
-fill(0);
-textFont(police,24);
+  fill(0);
+  textFont(police,24);
   text("i : Inversion des couleurs",10,img.height+20 );
   text("r : Recharger l'image",10,img.height+40 );
   text("v : Inversion Verticale",10,img.height+60 );
   text("h : Inversion Horizontale",10,img.height+80 );
   text("n : Noir et Blanc",420,img.height+20 );
+  text("f : Flou",420, img.height+40 );
 }
 
 void inversionVideo() {
@@ -81,24 +90,16 @@ void blacknwhite() {
 
 void blur(){
   loadPixels();
-  int[][] tab = new int[img.width][img.height];
-  for (int i = 0; i < tab.length; i++)
-    for (int j = 0; j < tab[i].length; j++)
+  int tailleMatrice = 3;
+  for (int x = 0; x < img.width; x++) {
+     for (int y = 0; y < img.height; y++) {
+        color c = convolution(x, y, blurmatrice, tailleMatrice, img);
+        int posPixels = x + y*img.width;
+        pixels[posPixels] = c;
+     }
+  }
       
   updatePixels();    
-}
-
-void keyPressed()
-{
-  if (key=='i') inversionVideo();
-  if (key=='v') retournementVertical();
-  if (key=='h') retournementHorizontal();
-  if (key=='r') {
-    image(img, 0, 0);
-    blacknwhite = false;
-  }
-  if (key=='n') blacknwhite();
-  if (key=='b') blur();
 }
 
 color rgbtohsv(color rgb) {
@@ -150,4 +151,43 @@ color hsvtorgb(color hsv) {
   default:
     return color(v, l, m);
   }
+}
+color convolution(int x, int y, float[][] matrice, int tailleMatrice, PImage img) 
+{
+  float r = 0.0;
+  float g = 0.0;
+  float b = 0.0;
+  int matMilieu = tailleMatrice / 2;
+  for (int i=0; i<tailleMatrice; i++) {
+    for (int j=0; j<tailleMatrice; j++) {
+      int xpos = x + i - matMilieu; // On soustrait matMilieu pour éviter un déplacement des pixels
+      int ypos = y + j - matMilieu;
+      int pos = xpos + ypos * img.width;
+      // On s'assure de ne pas être sorti de l'image
+      pos = constrain(pos, 0, img.pixels.length-1);
+      // Calcul de la convolution
+      r += (red(img.pixels[pos]) * matrice[i][j]);
+      g += (green(img.pixels[pos]) * matrice[i][j]);
+      b += (blue(img.pixels[pos]) * matrice[i][j]);
+    }
+  }
+  // On s'assure que le RGB des pixels soit bien entre 0 et 255
+  r = constrain(r, 0, 255);
+  g = constrain(g, 0, 255);
+  b = constrain(b, 0, 255);
+  // On renvoie la couleur résultante
+  return color(r, g, b);
+}
+
+void keyPressed()
+{
+  if (key=='i') inversionVideo();
+  if (key=='v') retournementVertical();
+  if (key=='h') retournementHorizontal();
+  if (key=='r') {
+    image(img, 0, 0);
+    blacknwhite = false;
+  }
+  if (key=='n') blacknwhite();
+  if (key=='f') blur();
 }
