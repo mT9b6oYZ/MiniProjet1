@@ -102,56 +102,67 @@ void blur(){
   updatePixels();    
 }
 
-color rgbtohsv(color rgb) {
-  int r = (int) red(rgb);
-  int g = (int) green(rgb);
-  int b = (int) blue(rgb);
-  int vmax = 0;
-  int vmin = 256;
-  int max = -1;
-  int min = -1;
-  if (r > vmax) {max = 0; vmax = r;}
-  if (r < vmin) {min = 0; vmin = r;}
-  if (g > vmax) {max = 1; vmax = g;}
-  if (g < vmin) {min = 1; vmin = g;}
-  if (b > vmax) {max = 2; vmax = b;}
-  if (b < vmin) {min = 2; vmin = b;}
-  int h = 0;
-  if (max == min) h = 0;
-  else if (max == 0) h = floor(256f * (g - b) / (6 * (vmax - vmin)));
-  else if (max == 1) h = floor(256f * ((b - r) / (6 * (vmax - vmin)) + 1 / 3f));
-  else if (max == 2) h = floor(256f * ((r - g) / (6 * (vmax - vmin)) + 2 / 3f));
-  int s = 0;
-  if (vmax == 0) s = 0;
-  else s = 256 - vmin / vmax * 256;
-  int  v = vmax;
-  return color(h, s, v);
-}
-
-color hsvtorgb(color hsv) {
-  int h = (int) red(hsv);
-  int s = (int) green(hsv);
-  int v = (int) blue(hsv);
-  int hi = floor(6 * h / 255f) % 6;
-  float f = 6 * h / 255f - hi;
-  int l = (int) (v * (1f - s / 255f));
-  int m = (int) (v * (1f - f * s / 255f));
-  int n = (int) (v * (1f - (1f - f) * s / 255f));
-  switch (hi) {
-  case 0:
-    return color(v, n, l);
-  case 1:
-    return color(m, v, l);
-  case 2:
-    return color(l, v, n);
-  case 3:
-    return color(l, m, v);
-  case 4:
-    return color(n, l, v);
-  default:
-    return color(v, l, m);
+  int rgbtohsv(int rgb) {
+    int r = rgb >> 16;
+    int g = (rgb >> 8) & 255;
+    int b = rgb & 255;
+    int vmax = 0;
+    int vmin = 255;
+    int max = -1;
+    int min = -1;
+    if (r > vmax) {max = 0; vmax = r;}
+    if (r < vmin) {min = 0; vmin = r;}
+    if (g > vmax) {max = 1; vmax = g;}
+    if (g < vmin) {min = 1; vmin = g;}
+    if (b > vmax) {max = 2; vmax = b;}
+    if (b < vmin) {min = 2; vmin = b;}
+    int v = vmax;
+    int s;
+    if (vmax == 0) s = 0;
+    else s = (int) Math.floor(256 - 256 * vmin / vmax);
+    int h = 0;
+    switch (max) {
+    case 0:
+      if (min == 1) h = (int) Math.floor(256 * (r - b) / (double) (s * v / 255d) / 6d + 256 * 5d / 6d);
+      else h = (int) Math.floor(256 * (g - b) / (double) (s * v / 255d) / 6d + 256 * 0);
+      break;
+    case 1:
+      if (min == 2) h = (int) Math.floor(256 * (g - r) / (double) (s * v / 255d) / 6d + 256 * 1d / 6d);
+      else h = (int) Math.floor(256 * (b - r) / (double) (s * v / 255d) / 6d + 256 * 2d / 6d);
+      break;
+    case 2:
+      if (min == 0) h = (int) Math.floor(255 * (b - g) / (double) (s * v / 255d) / 6d + 256 * 3d / 6d);
+      else h = (int) Math.floor(256 * (r - g) / (double) (s * v / 255d) / 6d + 256 * 4d / 6d);
+      break;
+    }
+    return (h << 16) | (s << 8) | v;
   }
-}
+  int hsvtorgb(int hsv) {
+    int h = hsv >> 16;
+    int s = (hsv >> 8) & 255;
+    int v = hsv & 255;
+    int hi = (int) Math.floor(6 * h / 256d) % 6;
+    float f = 6 * h / 256f - hi;
+    int max = v;
+    int med1 = (int) Math.floor(v - v * s * f / 255d);
+    int med2 = (int) Math.floor(v - v * s / 255d + v * s * f / 255d);
+    int min = (int) Math.floor(v * (256 - s) / 255d);
+    switch (hi) {
+    case 0:
+      return (max << 16) | (med2 << 8) | min;
+    case 1:
+      return (med1 << 16) | (max << 8) | min;
+    case 2:
+      return (min << 16) | (max  << 8) | med2;
+    case 3:
+      return (min << 16) | (med1 << 8) | max;
+    case 4:
+      return (med2 << 16) | (min << 8) | max;
+    default:
+      return (max << 16) | (min << 8) | med1;
+    }
+  }
+  
 color convolution(int x, int y, float[][] matrice, int tailleMatrice, PImage img) 
 {
   float r = 0.0;
